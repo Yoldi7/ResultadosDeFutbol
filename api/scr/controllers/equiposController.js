@@ -1,4 +1,5 @@
-// Array de datos de equipos de LaLiga.
+// src/controllers/equiposController.js
+
 const equipos = [
   { id: 1, nombre: 'Real Madrid', ciudad: 'Madrid', fechaCreacion: '1902-03-06', clasificacion: 1 },
   { id: 2, nombre: 'FC Barcelona', ciudad: 'Barcelona', fechaCreacion: '1899-11-29', clasificacion: 2 },
@@ -22,51 +23,68 @@ const equipos = [
   { id: 20, nombre: 'UD Levante', ciudad: 'Valencia', fechaCreacion: '1909-08-01', clasificacion: 20 }
 ];
 
+// Exporta el array de equipos para que otros módulos lo puedan usar
+exports.equipos = equipos;
 
+// Función para obtener todos los equipos
 exports.getEquipos = (req, res) => {
-  // Simplemente devolvemos el array de equipos como una respuesta JSON
   res.status(200).json(equipos);
 };
 
-
+// Función para obtener un equipo por ID
 exports.getEquipoById = (req, res) => {
-  const equipoId = parseInt(req.params.id); // Captura el ID de la URL
+  const equipoId = parseInt(req.params.id);
   const equipo = equipos.find(e => e.id === equipoId);
 
   if (equipo) {
-    res.status(200).json(equipo); // Devuelve el equipo encontrado
+    res.status(200).json(equipo);
   } else {
-    res.status(404).json({ message: 'Equipo no encontrado' }); // Si no se encuentra, envía un 404
+    res.status(404).json({ message: 'Equipo no encontrado' });
   }
 };
 
+// Función para crear un equipo (POST)
 exports.crearEquipo = (req, res) => {
   const nuevoEquipo = req.body;
   if (!nuevoEquipo.nombre || !nuevoEquipo.ciudad) {
     return res.status(400).json({ message: 'Faltan datos obligatorios: nombre y ciudad' });
   }
-  
-  // Asignar un ID único (en un caso real, la base de datos lo haría automáticamente)
   const nuevoId = equipos.length > 0 ? Math.max(...equipos.map(e => e.id)) + 1 : 1;
-  const equipoConId = {
-    id: nuevoId,
-    ...nuevoEquipo
-  };
-  
+  const equipoConId = { id: nuevoId, ...nuevoEquipo };
   equipos.push(equipoConId);
   res.status(201).json(equipoConId);
 };
 
+// Función para borrar un equipo (DELETE)
 exports.borrarEquipo = (req, res) => {
   const equipoId = parseInt(req.params.id);
   const indice = equipos.findIndex(e => e.id === equipoId);
 
   if (indice !== -1) {
-    // Elimina el equipo del array
     equipos.splice(indice, 1);
-    // 204 No Content es una respuesta común para operaciones de borrado exitosas
-    res.status(204).json({ message: 'Equipo eliminado con exito' });
+    res.status(204).send();
   } else {
     res.status(404).json({ message: 'Equipo no encontrado' });
   }
+};
+
+// **NUEVA FUNCIÓN: Modificar un equipo (PUT)**
+exports.modificarEquipo = (req, res) => {
+  const equipoId = parseInt(req.params.id); // Captura el ID de la URL
+  const datosModificados = req.body; // Captura los datos del cuerpo de la petición
+  const indice = equipos.findIndex(e => e.id === equipoId);
+
+  // Si el equipo no existe, devuelve un error 404
+  if (indice === -1) {
+    return res.status(404).json({ message: 'Equipo no encontrado para modificar.' });
+  }
+
+  // Si se encuentra, actualiza el objeto en el array con los nuevos datos
+  const equipoOriginal = equipos[indice];
+  equipos[indice] = {
+    ...equipoOriginal, // Mantiene los datos que no se modifican
+    ...datosModificados // Aplica los nuevos datos
+  };
+
+  res.status(200).json(equipos[indice]);
 };

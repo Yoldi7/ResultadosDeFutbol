@@ -1,22 +1,26 @@
+// server.js (o index.js)
+
 const express = require('express');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Importa el enrutador de equipos
+// Importa los enrutadores de equipos y partidos
 const equiposRoutes = require('./scr/routes/equiposRoutes');
+const partidosRoutes = require('./scr/routes/partidosRoutes');
 
-// Middleware para procesar JSON
+// Middleware para procesar JSON en las peticiones
 app.use(express.json());
 
-// Ruta de prueba
+// Ruta de prueba inicial
 app.get('/', (req, res) => {
   res.status(200).send('¡Hola! El servidor de tu API está funcionando.');
 });
 
-// Usa el enrutador de equipos para todas las peticiones que empiecen con '/equipos'
-// Es lo que se conoce como un "middleware de rutas"
+// Usa los enrutadores para definir los endpoints
 app.use('/equipos', equiposRoutes);
+app.use('/partidos', partidosRoutes);
 
+// Inicia el servidor
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en http://localhost:${PORT}`);
 });
