@@ -12,7 +12,7 @@ router.get('/:id', equiposController.getEquipoById);
 router.post('/', equiposController.crearEquipo);
 router.delete('/:id', equiposController.borrarEquipo);
 
-// **NUEVA RUTA PUT para editar un equipo**
+// PUT para editar un equipo
 router.put('/:id', equiposController.modificarEquipo);
 
 module.exports = router;

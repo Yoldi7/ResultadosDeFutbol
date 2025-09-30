@@ -49,8 +49,20 @@ exports.crearEquipo = (req, res) => {
   if (!nuevoEquipo.nombre || !nuevoEquipo.ciudad) {
     return res.status(400).json({ message: 'Faltan datos obligatorios: nombre y ciudad' });
   }
+  // Formatear la fecha como YYYY-MM-DD
+  let fechaCreacion;
+  if (!nuevoEquipo.fechaCreacion) {
+    fechaCreacion = new Date().toISOString().slice(0, 10);
+  }
   const nuevoId = equipos.length > 0 ? Math.max(...equipos.map(e => e.id)) + 1 : 1;
-  const equipoConId = { id: nuevoId, ...nuevoEquipo };
+  const nuevaClasificacion = equipos.length > 0 ? Math.max(...equipos.map(e => e.clasificacion)) + 1 : 1;
+  const equipoConId = {
+    id: nuevoId,
+    nombre: nuevoEquipo.nombre,
+    ciudad: nuevoEquipo.ciudad,
+    fechaCreacion: fechaCreacion,
+    clasificacion: nuevaClasificacion
+  };
   equipos.push(equipoConId);
   res.status(201).json(equipoConId);
 };
@@ -61,7 +73,15 @@ exports.borrarEquipo = (req, res) => {
   const indice = equipos.findIndex(e => e.id === equipoId);
 
   if (indice !== -1) {
+    // Guardar la clasificacion del equipo eliminado
+    const clasificacionEliminada = equipos[indice].clasificacion;
     equipos.splice(indice, 1);
+    // Reordenar clasificaciones
+    equipos.forEach(e => {
+      if (e.clasificacion > clasificacionEliminada) {
+        e.clasificacion -= 1;
+      }
+    });
     res.status(204).send();
   } else {
     res.status(404).json({ message: 'Equipo no encontrado' });
@@ -79,11 +99,48 @@ exports.modificarEquipo = (req, res) => {
     return res.status(404).json({ message: 'Equipo no encontrado para modificar.' });
   }
 
-  // Si se encuentra, actualiza el objeto en el array con los nuevos datos
+  // Validar que solo se actualicen campos existentes
+  const camposValidos = ['nombre', 'ciudad', 'fechaCreacion', 'clasificacion'];
+  const datosFiltrados = Object.keys(datosModificados)
+    .filter(campo => camposValidos.includes(campo))
+    .reduce((obj, campo) => {
+      obj[campo] = datosModificados[campo];
+      return obj;
+    }, {});
+
+  // Si no hay campos válidos para actualizar, devolver un error
+  if (Object.keys(datosFiltrados).length === 0) {
+    return res.status(400).json({ message: 'No se proporcionaron campos válidos para actualizar.' });
+  }
+
   const equipoOriginal = equipos[indice];
+
+  // Si se actualiza la clasificacion, ajustar las clasificaciones de otros equipos
+  if (datosFiltrados.clasificacion && datosFiltrados.clasificacion !== equipoOriginal.clasificacion) {
+    const nuevaClasificacion = datosFiltrados.clasificacion;
+    const clasificacionActual = equipoOriginal.clasificacion;
+
+    if (nuevaClasificacion > clasificacionActual) {
+      // Desplazar hacia arriba los equipos entre clasificacionActual y nuevaClasificacion
+      equipos.forEach(equipo => {
+        if (equipo.clasificacion > clasificacionActual && equipo.clasificacion <= nuevaClasificacion) {
+          equipo.clasificacion -= 1;
+        }
+      });
+    } else if (nuevaClasificacion < clasificacionActual) {
+      // Desplazar hacia abajo los equipos entre nuevaClasificacion y clasificacionActual
+      equipos.forEach(equipo => {
+        if (equipo.clasificacion >= nuevaClasificacion && equipo.clasificacion < clasificacionActual) {
+          equipo.clasificacion += 1;
+        }
+      });
+    }
+  }
+
+  // Actualizar el equipo con los nuevos datos
   equipos[indice] = {
     ...equipoOriginal, // Mantiene los datos que no se modifican
-    ...datosModificados // Aplica los nuevos datos
+    ...datosFiltrados // Aplica los nuevos datos
   };
 
   res.status(200).json(equipos[indice]);

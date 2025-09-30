@@ -54,9 +54,9 @@ exports.getPartidos = (req, res) => {
     const hoy = ahora.toISOString().split('T')[0];
     const [horaActual, minutoActual] = ahora.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit', hour12: false}).split(':').map(Number);
     const [horaPartido, minutoPartido] = partido.horaInicio.split(':').map(Number);
-    
+
     let estado = '';
-    
+
     if (partido.fecha < hoy || partido.resultado) { // Si hay resultado, está terminado.
       estado = ESTADO_PARTIDO.TERMINADO;
     } else if (partido.fecha === hoy) {
@@ -70,7 +70,14 @@ exports.getPartidos = (req, res) => {
     } else {
       estado = ESTADO_PARTIDO.PROGRAMADO;
     }
-    
+
+    // Generar resultado automático si el partido está terminado y no tiene resultado
+    if (estado === ESTADO_PARTIDO.TERMINADO && !partido.resultado) {
+      const golesLocal = Math.floor(Math.random() * 6); // Goles entre 0 y 5
+      const golesVisitante = Math.floor(Math.random() * 6);
+      partido.resultado = `${golesLocal} - ${golesVisitante}`;
+    }
+
     // Aquí es donde la magia ocurre: usamos .find() en el array de equipos importado
     const equipoLocal = equipos.find(eq => eq.id === partido.equipoLocalId);
     const equipoVisitante = equipos.find(eq => eq.id === partido.equipoVisitanteId);
@@ -160,11 +167,34 @@ exports.modificarPartido = (req, res) => {
     return res.status(404).json({ message: 'Partido no encontrado para modificar.' });
   }
 
+  // Validar que solo se actualicen campos existentes
+  const camposValidos = ['equipoLocalId', 'equipoVisitanteId', 'fecha', 'horaInicio', 'resultado'];
+  const datosFiltrados = Object.keys(datosModificados)
+    .filter(campo => camposValidos.includes(campo))
+    .reduce((obj, campo) => {
+      obj[campo] = datosModificados[campo];
+      return obj;
+    }, {});
+
+  // Si no hay campos válidos para actualizar, devolver un error
+  if (Object.keys(datosFiltrados).length === 0) {
+    return res.status(400).json({ message: 'No se proporcionaron campos válidos para actualizar.' });
+  }
+
+  // Validar que los nuevos equipos existan
+  if (datosFiltrados.equipoLocalId && !equipos.find(e => e.id === datosFiltrados.equipoLocalId)) {
+    return res.status(400).json({ message: 'El equipo local proporcionado no existe.' });
+  }
+
+  if (datosFiltrados.equipoVisitanteId && !equipos.find(e => e.id === datosFiltrados.equipoVisitanteId)) {
+    return res.status(400).json({ message: 'El equipo visitante proporcionado no existe.' });
+  }
+
   // Aplicar las modificaciones
   const partidoOriginal = partidos[indice];
   partidos[indice] = {
     ...partidoOriginal, // Mantener datos originales
-    ...datosModificados // Sobrescribir con los nuevos datos
+    ...datosFiltrados // Sobrescribir con los nuevos datos
   };
 
   res.status(200).json(partidos[indice]);

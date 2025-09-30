@@ -6,9 +6,11 @@ const partidosController = require('../controllers/partidosController');
 router.get('/', partidosController.getPartidos);
 router.get('/:id', partidosController.getPartidoById);
 
-// NUEVAS RUTAS
+// OTRAS RUTAS
 router.post('/', partidosController.crearPartido);
+
 router.put('/:id', partidosController.modificarPartido);
+
 router.delete('/:id', partidosController.eliminarPartido);
 
 module.exports = router;
