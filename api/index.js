@@ -1,6 +1,7 @@
 // server.js (o index.js)
 
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -10,6 +11,7 @@ const partidosRoutes = require('./scr/routes/partidosRoutes');
 
 // Middleware para procesar JSON en las peticiones
 app.use(express.json());
+app.use(cors());
 
 // Ruta de prueba inicial
 app.get('/', (req, res) => {
